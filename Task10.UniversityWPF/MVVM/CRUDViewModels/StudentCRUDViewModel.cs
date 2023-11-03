@@ -24,14 +24,12 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
             _studentRepository = studentRepository;
             _courseRepository = courseRepository;
             _dialogueService = dialogueService;
-            EditStudentCommand = new RelayCommand(o => EditStudent(), o => true);
-            CreateStudentCommand = new RelayCommand(o => CreateStudent(), o => true);
-            DeleteStudentCommand = new RelayCommand(o => Delete(), o => true);
+            EditStudentCommand = new RelayCommandAsync(Edit);
+            CreateStudentCommand = new RelayCommandAsync(Add);
         }
 
-        public RelayCommand EditStudentCommand { get; set; }
-        public RelayCommand CreateStudentCommand { get; set; }
-        public RelayCommand DeleteStudentCommand { get; set; }
+        public RelayCommandAsync EditStudentCommand { get; set; }
+        public RelayCommandAsync CreateStudentCommand { get; set; }
 
         #region"Properties"
         private string _firstName;
@@ -99,13 +97,16 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
                 OnPropertyChanged();
             }
         }
+
+        public Student CreatedStudent { get; set; }
         #endregion
-        public void SetCoursesCollection()
+        public async Task SetCoursesCollection()
         {
-            Courses = _courseRepository.GetCourseList().ToList();
+            var taskResult = await _courseRepository.GetCourseListAsync();
+            Courses = taskResult.ToList();
         }
 
-        public bool CreateStudent()
+        public async Task<bool> Add()
         {
             if (string.IsNullOrEmpty(FirstName) || string.IsNullOrEmpty(LastName) || SelectedGroup is null)
             {
@@ -121,12 +122,13 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
                 GroupId = SelectedGroup.GroupId
             };
 
-            var isSuccess = _studentRepository.Create(student);
+            CreatedStudent = student;
+            var isSuccess = await _studentRepository.CreateAsync(student);
             _dialogueService.AddMessageSuccess();
             return isSuccess;
         }
 
-        public bool EditStudent()
+        public async Task<bool> Edit()
         {
             if (string.IsNullOrEmpty(FirstName) || string.IsNullOrEmpty(LastName))
             {
@@ -137,20 +139,19 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
             var student = SelectedStudent;
             student.FirstName = FirstName;
             student.LastName = LastName;
-            var isSuccess = _studentRepository.Edit(student);
+            var isSuccess = await _studentRepository.EditAsync(student);
             _dialogueService.EditMessageSuccess();
             return isSuccess;
         }
 
-        public bool Delete()
+        public async Task<bool> Delete(Student student)
         {
-            string fullName = string.Format("{0} {1}", SelectedStudent.FirstName, SelectedStudent.LastName);
+            string fullName = string.Format("{0} {1}", student.FirstName, student.LastName);
             var result = _dialogueService.DeleteMessage(fullName);
 
             if (result == MessageBoxResult.Yes)
             {
-                var student = SelectedStudent;
-                return _studentRepository.Delete(student);
+                return await _studentRepository.DeleteAsync(student);
             }
             return false;
         }

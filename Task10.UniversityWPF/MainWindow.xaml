@@ -5,9 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Task10.UniversityWPF"
         xmlns:self="clr-namespace:Task10.UniversityWPF.Domain.Core.Models;assembly=Task10.UniversityWPF.Domain.Core"
+        xmlns:converter="clr-namespace:Task10.UniversityWPF.Converter"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800" WindowStartupLocation="CenterScreen"
+        Title="UniversityWPF Main window" Height="450" Width="800" WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize">
+    <Window.Resources>
+        <converter:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </Window.Resources>
 
     <Grid>
         <StackPanel Orientation="Horizontal"
@@ -16,7 +20,8 @@
                 Height="50"
                 Width="90"
                 Margin="10 0 10 0"
-                Command="{Binding AddButtonCommand}">
+                Command="{Binding AddButtonCommand}"
+                Visibility="{Binding IsVisibleControlButtons, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal">
                     <Image Source="C:\Users\Professional\source\repos\Task10.UniversityWPF\Task10.UniversityWPF\Images\25304.png" Width="20"/>
                     <TextBlock Text="Add" FontSize="30" />
@@ -26,33 +31,49 @@
                 Margin="10 0 10 0"
                 Height="50"
                 Width="90"
-                Command="{Binding EditButtonCommand}">
+                Command="{Binding EditButtonCommand}"
+                Visibility="{Binding IsVisibleControlButtons, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal">
                     <Image Source="C:\Users\Professional\source\repos\Task10.UniversityWPF\Task10.UniversityWPF\Images\edit-new-icon-22.png" Width="20"/>
                     <TextBlock Text="Edit" FontSize="30" />
                 </StackPanel>
             </Button>
         </StackPanel>
-        <Label Content="(select an item ot tabto interact with the buttons)"  Margin="535,72,0,0" FontSize="10" HorizontalAlignment="Left"  Height="22" VerticalAlignment="Top"/>
+
+        <Button
+                Margin="592,99,0,0"
+                Height="50"
+                Width="120"
+                Command="{Binding RemoveButtonCommand}" HorizontalAlignment="Left" VerticalAlignment="Top"
+                Visibility="{Binding IsVisibleControlButtons, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel Orientation="Horizontal">
+                <Image Source="C:\Users\Professional\source\repos\Task10.UniversityWPF\Task10.UniversityWPF\Images\DeleteIcon.png" Width="20"/>
+                <TextBlock Text="Delete" FontSize="30" />
+            </StackPanel>
+        </Button>
+
         <StackPanel Orientation="Vertical"
                     Margin="521,172,0,0" 
                     VerticalAlignment="Top" 
-                    HorizontalAlignment="Left"
-                    >
+                    HorizontalAlignment="Left">
             <Button 
                 Height="50"
+                Width="223"
                 Margin="10 10 10 0"
-                Command="{Binding CreateDockCommand}">
+                Command="{Binding CreateDockCommand}"
+                Visibility="{Binding IsVisibleGeneratePdf, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal">
                     <Image Source="C:\Users\Professional\source\repos\Task10.UniversityWPF\Task10.UniversityWPF\Images\181627.png" Width="20"/>
-                    <TextBlock Text="Create dock" FontSize="30" />
+                    <TextBlock Text="Get pdf/csv" FontSize="30" />
                 </StackPanel>
             </Button>
-            <Label Content="(select a course/group before using the button)"/>
+
             <Button
                 Margin="10 10 10 0"
                 Height="50"
-                Command="{Binding ImportCommand}">
+                Width="223"
+                Command="{Binding ImportCommand}"
+                Visibility="{Binding IsVisibleImportExport, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal">
                     <Image Source="C:\Users\Professional\source\repos\Task10.UniversityWPF\Task10.UniversityWPF\Images\151901.png" Width="20"/>
                     <TextBlock Text="Import student" FontSize="30" />
@@ -61,13 +82,14 @@
             <Button
                 Margin="10 10 10 0"
                 Height="50"
-                Command="{Binding ExportCommand}">
+                Width="223"
+                Command="{Binding ExportCommand}"
+                Visibility="{Binding IsVisibleImportExport, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal">
                     <Image Source="C:\Users\Professional\source\repos\Task10.UniversityWPF\Task10.UniversityWPF\Images\Export.png" Width="20"/>
                     <TextBlock Text="Export student" FontSize="30" />
                 </StackPanel>
             </Button>
-            <Label Content="(select a group first before using the buttons)"/>
         </StackPanel>
 
         <TabControl Width="520"
@@ -77,27 +99,26 @@
             <TabItem Header="Tree view struct">
                 <Grid>
                     <TreeView Name="myTreeView" 
-                    ItemsSource="{Binding Path=Courses}"
+                    ItemsSource="{Binding Path=Courses, Mode=TwoWay}"
                     SelectedItemChanged="myTreeView_SelectedItemChanged" 
                     Background="#252525"
                     MouseDoubleClick="myTreeView_MouseDoubleClick"
                     Foreground="White">
                         <TreeView.ItemTemplate>
-                            <HierarchicalDataTemplate DataType="{x:Type self:Course}" ItemsSource="{Binding Groups}">
+                            <HierarchicalDataTemplate DataType="{x:Type self:Course}" ItemsSource="{Binding Groups, Mode=TwoWay}">
                                 <StackPanel>
-                                    <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="Bold"  Foreground="White"/>
-                                    <TextBlock Text="{Binding Description}" Foreground="White"/>
+                                    <TextBlock Text="{Binding Name, Mode=TwoWay}" FontSize="15" FontWeight="Bold"  Foreground="White"/>
+                                    <TextBlock Text="{Binding Description, Mode=TwoWay}" Foreground="White"/>
                                 </StackPanel>
-
                                 <HierarchicalDataTemplate.ItemTemplate>
-                                    <HierarchicalDataTemplate DataType="{x:Type self:Group}" ItemsSource="{Binding Students}">
+                                    <HierarchicalDataTemplate DataType="{x:Type self:Group}" ItemsSource="{Binding Students, Mode=TwoWay}">
                                         <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Bold" Foreground="White"/>
                                         <HierarchicalDataTemplate.ItemTemplate>
                                             <HierarchicalDataTemplate>
                                                 <StackPanel>
                                                     <TextBlock Foreground="White">
-                                                        <Run Text="{Binding Path=FirstName}"/>
-                                                        <Run Text="{Binding Path=LastName}"/>
+                                                        <Run Text="{Binding Path=FirstName, Mode=TwoWay}"/>
+                                                        <Run Text="{Binding Path=LastName, Mode=TwoWay}"/>
                                                     </TextBlock>
                                                 </StackPanel>
                                             </HierarchicalDataTemplate>
@@ -116,7 +137,7 @@
                     VerticalAlignment="Stretch"
                     Grid.Column="0" 
                     Grid.Row="0"
-                    ItemsSource="{Binding Path=Courses}"
+                    ItemsSource="{Binding Path=Courses, Mode=TwoWay}"
                     ScrollViewer.VerticalScrollBarVisibility="Visible"
                     ScrollViewer.CanContentScroll="False"
                     SelectedItem="{Binding Path=SelectedItem, Mode=TwoWay}"
@@ -124,8 +145,8 @@
                     Foreground="White">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="Name" Width="150" DisplayMemberBinding="{Binding Name}"/>
-                                <GridViewColumn Header="Description" Width="350" DisplayMemberBinding="{Binding Description}"/>
+                                <GridViewColumn Header="Name" Width="150" DisplayMemberBinding="{Binding Name, Mode=TwoWay}"/>
+                                <GridViewColumn Header="Description" Width="350" DisplayMemberBinding="{Binding Description, Mode=TwoWay}"/>
                             </GridView>
                         </ListView.View>
                         <ListView.ItemContainerStyle>
@@ -151,7 +172,7 @@
                     VerticalAlignment="Stretch"
                     Grid.Column="0" 
                     Grid.Row="0"
-                    ItemsSource="{Binding Path=Groups}"
+                    ItemsSource="{Binding Path=Groups, Mode=TwoWay}"
                     ScrollViewer.VerticalScrollBarVisibility="Visible"
                     ScrollViewer.CanContentScroll="False"
                     SelectedItem="{Binding Path=SelectedItem}"
@@ -159,9 +180,9 @@
                     Foreground="White">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="Name" Width="100" DisplayMemberBinding="{Binding Name}"/>
-                                <GridViewColumn Header="Teacher name" Width="200" DisplayMemberBinding="{Binding Path=Teacher.Name}" />
-                                <GridViewColumn Header="Teacher surename" Width="200" DisplayMemberBinding="{Binding Path=Teacher.Surename}"/>
+                                <GridViewColumn Header="Name" Width="100" DisplayMemberBinding="{Binding Name, Mode=TwoWay}"/>
+                                <GridViewColumn Header="Teacher name" Width="200" DisplayMemberBinding="{Binding Path=Teacher.Name, Mode=TwoWay}" />
+                                <GridViewColumn Header="Teacher surename" Width="200" DisplayMemberBinding="{Binding Path=Teacher.Surename, Mode=TwoWay}"/>
                             </GridView>
                         </ListView.View>
                         <ListView.ItemContainerStyle>
@@ -196,7 +217,7 @@
                     VerticalAlignment="Stretch"
                     Grid.Column="0" 
                     Grid.Row="0"
-                    ItemsSource="{Binding Path=Students}"
+                    ItemsSource="{Binding Path=Students, Mode=TwoWay}"
                     ScrollViewer.VerticalScrollBarVisibility="Visible"
                     ScrollViewer.CanContentScroll="False"
                     SelectedItem="{Binding Path=SelectedItem}"
@@ -204,8 +225,8 @@
                     Foreground="White">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="First Name" Width="300" DisplayMemberBinding="{Binding Path=FirstName}"/>
-                                <GridViewColumn Header="Last Name" DisplayMemberBinding="{Binding Path=LastName}"/>
+                                <GridViewColumn Header="First Name" Width="300" DisplayMemberBinding="{Binding Path=FirstName, Mode=TwoWay}"/>
+                                <GridViewColumn Header="Last Name" DisplayMemberBinding="{Binding Path=LastName, Mode=TwoWay}"/>
                             </GridView>
                         </ListView.View>
                         <ListView.ItemContainerStyle>
@@ -239,7 +260,7 @@
                     VerticalAlignment="Stretch"
                     Grid.Column="0" 
                     Grid.Row="0"
-                    ItemsSource="{Binding Path=Teachers}"
+                    ItemsSource="{Binding Path=Teachers, Mode=TwoWay}"
                     ScrollViewer.VerticalScrollBarVisibility="Visible"
                     ScrollViewer.CanContentScroll="False"
                     SelectedItem="{Binding Path=SelectedItem}"
@@ -247,8 +268,8 @@
                     Foreground="White">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="Teacher name" Width="250" DisplayMemberBinding="{Binding Name}"/>
-                                <GridViewColumn Header="Teacher surename" Width="250" DisplayMemberBinding="{Binding Surename}" />
+                                <GridViewColumn Header="Teacher name" Width="250" DisplayMemberBinding="{Binding Name, Mode=TwoWay}"/>
+                                <GridViewColumn Header="Teacher surename" Width="250" DisplayMemberBinding="{Binding Surename, Mode=TwoWay}" />
                             </GridView>
                         </ListView.View>
                         <ListView.ItemContainerStyle>

@@ -1,4 +1,5 @@
-﻿using Task10.UniversityWPF.Domain.Core.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using Task10.UniversityWPF.Domain.Core.Models;
 using Task10.UniversityWPF.Domain.Interfaces;
 
 namespace Task10.UniversityWPF.Infrastructure.Data.Repos;
@@ -11,37 +12,38 @@ public class TeacherRepository : ITeacherRepository
         _context = context;
     }
 
-    public bool Create(Teacher teacher)
+    public async Task<bool> CreateAsync(Teacher teacher)
     {
-        _context.Add(teacher);
-        return Save();
+        await _context.AddAsync(teacher);
+        return await SaveAsync();
     }
 
-    public bool Delete(Teacher teacher)
+    public async Task<bool> DeleteAsync(Teacher teacher)
     {
         _context.Remove(teacher);
-        return Save();
+        return await SaveAsync();
     }
 
-    public bool Edit(Teacher teacher)
+    public async Task<bool> EditAsync(Teacher teacher)
     {
         _context.Update(teacher);
-        return Save();
+        return await SaveAsync();
     }
 
-    public Teacher GetTeacherById(int id)
+    public async Task<Teacher> GetTeacherByIdAsync(int id)
     {
-        return _context.Teachers.FirstOrDefault(t => t.TeacherId == id);
+        return await _context.Teachers.FirstOrDefaultAsync(t => t.TeacherId == id);
     }
 
-    public bool Save()
+    public async Task<bool> SaveAsync()
     {
-        var saved = _context.SaveChanges();
+        var saved = await _context.SaveChangesAsync();
         return saved > 0;
     }
 
-    public ICollection<Teacher> GetAllTeachers()
+    public async Task<ICollection<Teacher>> GetAllTeachersAsync()
     {
-        return _context.Teachers.ToList();
-    }
+        return await _context.Teachers.ToListAsync();
+    }   
+
 }

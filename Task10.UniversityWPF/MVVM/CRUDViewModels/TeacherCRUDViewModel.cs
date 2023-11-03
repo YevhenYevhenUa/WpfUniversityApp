@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Threading.Tasks;
+using System.Windows;
 using Task10.UniversityWPF.Domain.Core.Models;
 using Task10.UniversityWPF.Domain.Interfaces;
 using Task10.UniversityWPF.MVVMCore;
@@ -15,14 +16,12 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
         {
             _teacherRepository = teacherRepository;
             _dialogueService = dialogueService;
-            EditTeacherCommand = new RelayCommand(o => Edit(), o => true);
-            AddTeacherCommand = new RelayCommand(o => Add(), o => true);
-            DeleteTeacherCommand = new RelayCommand(o => Delete(), o => true);
+            EditTeacherCommand = new RelayCommandAsync(Edit);
+            AddTeacherCommand = new RelayCommandAsync(Add);
         }
 
-        public RelayCommand EditTeacherCommand { get; set; }
-        public RelayCommand AddTeacherCommand { get; set; }
-        public RelayCommand DeleteTeacherCommand { get; set; }
+        public RelayCommandAsync EditTeacherCommand { get; set; }
+        public RelayCommandAsync AddTeacherCommand { get; set; }
         #region"properties"
         private string _name;
         public string Name
@@ -56,8 +55,10 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
                 OnPropertyChanged();
             }
         }
+
+        public Teacher CreatedTeacher { get; set; }
         #endregion
-        public bool Edit()
+        public async Task<bool> Edit()
         {
             if (string.IsNullOrEmpty(Name) || string.IsNullOrEmpty(Surename))
             {
@@ -68,16 +69,16 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
             var teacher = SelectedTeacher;
             teacher.Name = Name;
             teacher.Surename = Surename;
-            var isSuccess = _teacherRepository.Edit(teacher);
+            var isSuccess = await _teacherRepository.EditAsync(teacher);
             _dialogueService.EditMessageSuccess();
             return isSuccess;
         }
 
-        public bool Add()
+        public async Task<bool> Add()
         {
             if (string.IsNullOrEmpty(Name) || string.IsNullOrEmpty(Surename))
             {
-               _dialogueService.AddMessageError();
+                _dialogueService.AddMessageError();
                 return false;
             }
 
@@ -87,19 +88,19 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
                 Surename = Surename,
             };
 
-            var isSuccess = _teacherRepository.Create(teacher);
+            CreatedTeacher = teacher;
+            var isSuccess = await _teacherRepository.CreateAsync(teacher);
             _dialogueService.AddMessageSuccess();
             return isSuccess;
         }
 
-        public bool Delete()
+        public async Task<bool> Delete(Teacher teacher)
         {
-            string fullName = string.Format("{0} {1}", SelectedTeacher.Name, SelectedTeacher.Surename);
+            string fullName = string.Format("{0} {1}", teacher.Name, teacher.Surename);
             var result = _dialogueService.DeleteMessage(fullName);
             if (result == MessageBoxResult.Yes)
             {
-                var teacher = SelectedTeacher;
-                return _teacherRepository.Delete(teacher);
+                return await _teacherRepository.DeleteAsync(teacher);
             }
 
             return false;

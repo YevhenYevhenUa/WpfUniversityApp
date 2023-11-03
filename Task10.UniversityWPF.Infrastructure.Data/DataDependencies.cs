@@ -1,10 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Task10.UniversityWPF.Domain.Interfaces;
 using Task10.UniversityWPF.Infrastructure.Data.Repos;
 
@@ -20,4 +15,13 @@ public static class DataDependencies
 
         return services;
     }
+
+    public static IServiceCollection GetDbContextDependency(this IServiceCollection services, string connectionstring)
+    {
+        services.AddDbContext<University20Context>(options =>
+                options.UseSqlServer(connectionstring));
+        return services;
+    }
+
+
 }

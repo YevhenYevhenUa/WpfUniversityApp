@@ -1,15 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.ObjectModel;
 using System.Threading.Tasks;
-using System.Windows;
 using Task10.UniversityWPF.Domain.Core.Models;
 using Task10.UniversityWPF.Domain.Interfaces;
-using Task10.UniversityWPF.Infrastructure.Data;
 using Task10.UniversityWPF.MVVM.CRUDViewModels;
 using Task10.UniversityWPF.MVVM.Views.Groups;
-using Task10.UniversityWPF.MVVMCore;
 
 namespace Task10.UniversityWPF.MVVM.ViewModels
 {
@@ -18,44 +12,51 @@ namespace Task10.UniversityWPF.MVVM.ViewModels
         private readonly GroupCRUDVIewModel _groupVM;
         private readonly EditGroup _editGroup;
         private readonly AddGroup _addGroup;
+        private readonly IGroupRepository _groupRepository;
 
-        public GroupViewModel(GroupCRUDVIewModel groupVM, EditGroup editGroup, AddGroup addGroup)
+        public GroupViewModel(GroupCRUDVIewModel groupVM,
+            EditGroup editGroup,
+            AddGroup addGroup,
+            IGroupRepository groupRepository)
         {
             _groupVM = groupVM;
             _editGroup = editGroup;
             _addGroup = addGroup;
+            _groupRepository = groupRepository;
         }
 
-        public void EditGroup(Group group)
+        public async Task EditGroup(Group group)
         {
             _groupVM.SelectedGroup = group;
-            _groupVM.SetTeachersCollection();
+            await _groupVM.SetTeachersCollection();
             _groupVM.Name = group.Name;
             _groupVM.SelectedTeacher = group.Teacher;
             _editGroup.ShowDialog();
         }
 
-        public void AddGroup()
+        public async Task<Group> AddGroup()
         {
+            _groupVM.CreatedGroup = null;
             _groupVM.Name = string.Empty;
-            _groupVM.SetCourseCollection();
-            _groupVM.SetTeachersCollection();
+            await _groupVM.SetCourseCollection();
+            await _groupVM.SetTeachersCollection();
             _addGroup.ShowDialog();
+            return _groupVM.CreatedGroup;
         }
 
-        public void ImportStudents(Group group)
+        public async Task<ObservableCollection<Group>> GetGroupsCollection()
         {
-            _groupVM.ImortOpen(group);
+            ObservableCollection<Group> Groups = new ObservableCollection<Group>();
+            var groups = await _groupRepository.GetAllGroupsAsync();
+            foreach (var item in groups)
+            {
+                Groups.Add(item);
+            }
+
+            return Groups;
         }
 
-        public void ExportStudents(Group group)
-        {
-            _groupVM.ExportOpen(group);
-        }
+        public GroupCRUDVIewModel GroupCRUDVIewModel => _groupVM;
 
-        public void CreateDock(Group group)
-        {
-            _groupVM.CreateDock(group);
-        }
     }
 }

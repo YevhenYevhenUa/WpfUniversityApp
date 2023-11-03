@@ -34,7 +34,7 @@ public class GroupCRUDViewModelTests
     [Theory]
     [InlineData("test", true)]
     [InlineData(null, false)]
-    public void CroupCRUDViewModel_Add_ShouldReturnBoolResult(string name, bool expectResult)
+    public async void CroupCRUDViewModel_Add_ShouldReturnBoolResult(string name, bool expectResult)
     {
         //Arrange
         var teacher = new Teacher
@@ -51,9 +51,9 @@ public class GroupCRUDViewModelTests
         _sut.SelectedCourse = testCourse;
         _sut.SelectedTeacher = teacher;
         _sut.Name = name;
-        _groupRepositoryMock.Setup(o => o.Create(It.IsAny<Group>())).Returns(true);
+        _groupRepositoryMock.Setup(o => o.CreateAsync(It.IsAny<Group>())).ReturnsAsync(true);
         //Act
-        var result = _sut.Add();
+        var result = await _sut.Add();
         //Assert
         Assert.Equal(result, expectResult);
     }
@@ -61,7 +61,7 @@ public class GroupCRUDViewModelTests
     [Theory]
     [InlineData("test", true)]
     [InlineData(null, false)]
-    public void CroupCRUDViewModel_Edit_ShouldReturnBoolResult(string name, bool expectResult)
+    public async void CroupCRUDViewModel_Edit_ShouldReturnBoolResult(string name, bool expectResult)
     {
         //Arrange
         var testGroup = new Group();
@@ -69,9 +69,9 @@ public class GroupCRUDViewModelTests
         _sut.SelectedGroup = testGroup;
         _sut.SelectedTeacher = testTeacher;
         _sut.Name = name;
-        _groupRepositoryMock.Setup(o => o.Edit(It.IsAny<Group>())).Returns(true);
+        _groupRepositoryMock.Setup(o => o.EditAsync(It.IsAny<Group>())).ReturnsAsync(true);
         //Act
-        var result = _sut.Edit();
+        var result = await _sut.Edit();
         //Assert
         Assert.Equal(result, expectResult);
     }
@@ -79,7 +79,7 @@ public class GroupCRUDViewModelTests
     [Theory]
     [InlineData(0, true)]
     [InlineData(2, false)]
-    public void CroupCRUDViewModel_Delete_ShouldReturnBoolResult(int studentCount, bool expectResult)
+    public async void CroupCRUDViewModel_Delete_ShouldReturnBoolResult(int studentCount, bool expectResult)
     {
         //Arrange
         var testList = new List<Student>();
@@ -88,13 +88,13 @@ public class GroupCRUDViewModelTests
             testList.Add(new Student { StudentId = i });
         }
 
-        _studentRepositoryMock.Setup(o => o.GetListById(It.IsAny<int>())).Returns(testList);
+        _studentRepositoryMock.Setup(o => o.GetListByIdAsync(It.IsAny<int>())).ReturnsAsync(testList);
         _dialogueServiceMock.Setup(o => o.DeleteMessage(It.IsAny<string>())).Returns(MessageBoxResult.Yes);
         var testGroup = new Group();
         _sut.SelectedGroup = testGroup;
-        _groupRepositoryMock.Setup(o => o.Delete(It.IsAny<Group>())).Returns(true);
+        _groupRepositoryMock.Setup(o => o.DeleteAsync(It.IsAny<Group>())).ReturnsAsync(true);
         //Act
-        var result = _sut.Delete();
+        var result = await _sut.Delete(testGroup);
         //Assert
         Assert.Equal(result, expectResult);
     }

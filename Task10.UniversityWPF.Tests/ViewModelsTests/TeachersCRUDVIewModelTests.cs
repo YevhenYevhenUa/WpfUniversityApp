@@ -1,4 +1,5 @@
-﻿using Moq;
+﻿using Castle.DynamicProxy.Generators;
+using Moq;
 using System.Windows;
 using Task10.UniversityWPF.Domain.Core.Models;
 using Task10.UniversityWPF.Domain.Interfaces;
@@ -22,15 +23,15 @@ public class TeachersCRUDVIewModelTests
     [InlineData("test", "test", true)]
     [InlineData(null, "test", false)]
     [InlineData(null, null, false)]
-    public void TeacherCRUDViewModel_Edit_ShouldReturnBoolResult(string name, string sureName, bool expectResult)
+    public async void TeacherCRUDViewModel_Edit_ShouldReturnBoolResult(string name, string sureName, bool expectResult)
     {
         //Arrange
         _sut.SelectedTeacher = new Teacher();
         _sut.Name = name;
         _sut.Surename = sureName;
-        _teacherRepoMock.Setup(o => o.Edit(It.IsAny<Teacher>())).Returns(true);
+        _teacherRepoMock.Setup(o => o.EditAsync(It.IsAny<Teacher>())).ReturnsAsync(true);
         //Act
-        var result = _sut.Edit();
+        var result = await _sut.Edit();
         //Assert
         Assert.Equal(expectResult, result);
     }
@@ -39,27 +40,28 @@ public class TeachersCRUDVIewModelTests
     [InlineData("test", "test", true)]
     [InlineData(null, "test", false)]
     [InlineData(null, null, false)]
-    public void TeacherCRUDViewModel_Add_ShouldReturnBoolResult(string name, string surename, bool expectResult)
+    public async void TeacherCRUDViewModel_Add_ShouldReturnBoolResult(string name, string surename, bool expectResult)
     {
         //Arrange
         _sut.Name = name;
         _sut.Surename = surename;
-        _teacherRepoMock.Setup(o => o.Create(It.IsAny<Teacher>())).Returns(true);
+        _teacherRepoMock.Setup(o => o.CreateAsync(It.IsAny<Teacher>())).ReturnsAsync(true);
         //Act
-        var result = _sut.Add();
+        var result = await _sut.Add();
         //Assert
         Assert.Equal(expectResult, result);
     }
 
     [Fact]
-    public void TeacherCRUDViewModel_Delete_ShouldReturnTrueOnDelete()
+    public async void TeacherCRUDViewModel_Delete_ShouldReturnTrueOnDelete()
     {
         //Arrange
-        _sut.SelectedTeacher = new Teacher();
+        var testTeacher = new Teacher();
+        _sut.SelectedTeacher = testTeacher;
         _dialogueServiceMock.Setup(o => o.DeleteMessage(It.IsAny<string>())).Returns(MessageBoxResult.Yes);
-        _teacherRepoMock.Setup(o => o.Delete(It.IsAny<Teacher>())).Returns(true);
+        _teacherRepoMock.Setup(o => o.DeleteAsync(It.IsAny<Teacher>())).ReturnsAsync(true);
         //Act
-        var result = _sut.Delete();
+        var result = await _sut.Delete(testTeacher);
         //Assert
         Assert.True(result);
     }

@@ -1,4 +1,5 @@
-﻿using Task10.UniversityWPF.Domain.Core.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using Task10.UniversityWPF.Domain.Core.Models;
 using Task10.UniversityWPF.Domain.Interfaces;
 
 namespace Task10.UniversityWPF.Infrastructure.Data.Repos;
@@ -11,42 +12,43 @@ public class GroupRepository : IGroupRepository
         _context = context;
     }
 
-    public ICollection<Group> GetAllGroups()
+    public async Task<ICollection<Group>> GetAllGroupsAsync()
     {
-        return _context.Groups.ToList();
+        return await _context.Groups.ToListAsync();
     }
 
-    public bool Create(Group group)
+    public async Task<bool> CreateAsync(Group group)
     {
-        _context.Add(group);
-        return Save();
+        await _context.Groups.AddAsync(group);
+        return await SaveAsync();
     }
 
-    public bool Delete(Group group)
+    public async Task<bool> DeleteAsync(Group group)
     {
         _context.Remove(group);
-        return Save();
+        return await SaveAsync();
     }
 
-    public bool Edit(Group group)
+    public async Task<bool> EditAsync(Group group)
     {
         _context.Update(group);
-        return Save();
+        return await SaveAsync();
     }
 
-    public Group GetGroupById(int id)
+    public async Task<Group> GetGroupByIdAsync(int id)
     {
-        return _context.Groups.FirstOrDefault(g => g.GroupId == id);
+        return await _context.Groups.FirstOrDefaultAsync(g => g.GroupId == id);
     }
 
-    public ICollection<Group> GetListById(int id)
+    public async Task<ICollection<Group>> GetListByIdAsync(int id)
     {
-        return _context.Groups.Where(g => g.CourseId == id).ToList();
+        return await _context.Groups.Where(g => g.CourseId == id).ToListAsync();
     }
 
-    public bool Save()
+    public async Task<bool> SaveAsync()
     {
-        var saved = _context.SaveChanges();
+        var saved = await _context.SaveChangesAsync();
         return saved > 0;
     }
+
 }

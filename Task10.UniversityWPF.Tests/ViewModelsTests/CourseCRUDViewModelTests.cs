@@ -11,22 +11,20 @@ public class CourseCRUDViewModelTests
     private readonly CourseCRUDViewModel _sut;
     private readonly Mock<ICourseRepository> _courseRepoMock;
     private readonly Mock<IGroupRepository> _groupRepoMock;
-    private readonly Mock<IStudentRepository> _studentRepoMock;
     private readonly Mock<IDialogueService> _dialogueMock;
     public CourseCRUDViewModelTests()
     {
         _courseRepoMock = new Mock<ICourseRepository>();
         _groupRepoMock = new Mock<IGroupRepository>();
-        _studentRepoMock = new Mock<IStudentRepository>();
         _dialogueMock = new Mock<IDialogueService>();
-        _sut = new CourseCRUDViewModel(_courseRepoMock.Object, _groupRepoMock.Object, _studentRepoMock.Object, _dialogueMock.Object);
+        _sut = new CourseCRUDViewModel(_courseRepoMock.Object, _groupRepoMock.Object, _dialogueMock.Object);
     }
 
     [Theory]
     [InlineData("Test", "Test", true)]
     [InlineData("Test", null, false)]
     [InlineData(null, null, false)]
-    public void StudentCRUDViewModel_Edit_ShouldReturnTrueOnSuccess(string name, string description, bool expectResult)
+    public async void StudentCRUDViewModel_Edit_ShouldReturnTrueOnSuccess(string name, string description, bool expectResult)
     {
         //Arrange
         var course = new Course
@@ -34,12 +32,13 @@ public class CourseCRUDViewModelTests
             Name = "TestName",
             Description = "TestDescription"
         };
-        _courseRepoMock.Setup(o => o.Edit(It.IsAny<Course>())).Returns(true);
+
+        _courseRepoMock.Setup(o => o.EditAsync(It.IsAny<Course>())).ReturnsAsync(true);
         _sut.Name = name;
         _sut.Description = description;
         _sut.SelectedCourse = course;
         //Act
-        var result = _sut.Edit();
+        var result = await _sut.Edit();
         //Assert
         Assert.Equal(expectResult, result);
     }
@@ -48,14 +47,14 @@ public class CourseCRUDViewModelTests
     [InlineData("Test", "Test", true)]
     [InlineData("Test", null, false)]
     [InlineData(null, null, false)]
-    public void StudentCRUDViewModel_AddNewCourse_ShouldReturnBoolResult(string name, string description, bool expectResult)
+    public async void StudentCRUDViewModel_AddNewCourse_ShouldReturnBoolResult(string name, string description, bool expectResult)
     {
         //Arrange
         _sut.Name = name;
         _sut.Description = description;
-        _courseRepoMock.Setup(o => o.Create(It.IsAny<Course>())).Returns(true);
+        _courseRepoMock.Setup(o => o.CreateAsync(It.IsAny<Course>())).ReturnsAsync(true);
         //Act
-        var result = _sut.AddNewCourse();
+        var result = await _sut.Add();
         //Assert
         Assert.Equal(expectResult, result);
     }
@@ -63,7 +62,7 @@ public class CourseCRUDViewModelTests
     [Theory]
     [InlineData(true, 0)]
     [InlineData(false, 2)]
-    public void StudentCRUDViewModel_Delete_ShouldReturnBoolResult(bool expectResult, int groupCount)
+    public async void StudentCRUDViewModel_Delete_ShouldReturnBoolResult(bool expectResult, int groupCount)
     {
         //Arrange
         var testList = new List<Group>();
@@ -75,16 +74,17 @@ public class CourseCRUDViewModelTests
         var testCourse = new Course
         {
             CourseId = 1,
-            Groups = testList,
+            Groups = new System.Collections.ObjectModel.ObservableCollection<Group>(testList),
             Name = "testName",
             Description = "testDescription"
         };
-        _groupRepoMock.Setup(o => o.GetListById(It.IsAny<int>())).Returns(testList);
+
+        _groupRepoMock.Setup(o => o.GetListByIdAsync(It.IsAny<int>())).ReturnsAsync(testList);
         _sut.SelectedCourse = testCourse;
         _dialogueMock.Setup(o => o.DeleteMessage(It.IsAny<string>())).Returns(MessageBoxResult.Yes);
-        _courseRepoMock.Setup(o => o.Delete(It.IsAny<Course>())).Returns(true);
+        _courseRepoMock.Setup(o => o.DeleteAsync(It.IsAny<Course>())).ReturnsAsync(true);
         //Act
-        var result = _sut.Delete();
+        var result = await _sut.Delete(testCourse);
         //Assert
         Assert.Equal(expectResult, result);
     }

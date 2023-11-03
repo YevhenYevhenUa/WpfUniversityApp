@@ -12,37 +12,37 @@ public class CourseRepository : ICourseRepository
         _context = context;
     }
 
-    public bool Create(Course course)
+    public async Task<bool> CreateAsync(Course course)
     {
-        _context.Add(course);
-        return Save();
+        await _context.AddAsync(course);
+        return await SaveAsync();
     }
 
-    public bool Delete(Course course)
+    public async Task<bool> DeleteAsync(Course course)
     {
         _context.Remove(course);
-        return Save();
+        return await SaveAsync();
     }
 
-    public bool Edit(Course course)
+    public async Task<bool> EditAsync(Course course)
     {
         _context.Update(course);
-        return Save();
+        return await SaveAsync();
     }
 
-    public Course GetCourseById(int id)
+    public async Task<Course> GetCourseByIdAsync(int id)
     {
-        return _context.Courses.FirstOrDefault(c => c.CourseId == id);
+        return await _context.Courses.FirstOrDefaultAsync(c => c.CourseId == id);
     }
 
-    public ICollection<Course> GetCourseList()
+    public async Task<ICollection<Course>> GetCourseListAsync()
     {
-        return _context.Courses.ToList();
+       return await _context.Courses.ToListAsync();
     }
 
-    public bool Save()
+    public async Task<bool> SaveAsync()
     {
-        var saved = _context.SaveChanges();
+        var saved = await _context.SaveChangesAsync();
         return saved > 0;
     }
 }

@@ -1,10 +1,4 @@
-﻿using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using System.Windows;
 using Task10.UniversityWPF.Domain.Core.Models;
 using Task10.UniversityWPF.Domain.Interfaces;
@@ -17,26 +11,21 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
     {
         private readonly ICourseRepository _courseRepository;
         private readonly IGroupRepository _groupRepository;
-        private readonly IStudentRepository _studentRepository;
         private readonly IDialogueService _dialogueService;
 
         public CourseCRUDViewModel(ICourseRepository courseRepository,
             IGroupRepository groupRepository,
-            IStudentRepository studentRepository,
             IDialogueService dialogueService)
         {
             _courseRepository = courseRepository;
             _groupRepository = groupRepository;
-            _studentRepository = studentRepository;
             _dialogueService = dialogueService;
-            EditCourseCommand = new RelayCommand(o => Edit(), o => true);
-            AddCourseCommand = new RelayCommand(o => AddNewCourse(), o => true);
-            DeleteCourseCommand = new RelayCommand(o => Delete(), o => true);
+            EditCourseCommand = new RelayCommandAsync(Edit);
+            AddCourseCommand = new RelayCommandAsync(Add);
         }
 
-        public RelayCommand EditCourseCommand { get; set; }
-        public RelayCommand DeleteCourseCommand { get; set; }
-        public RelayCommand AddCourseCommand { get; set; }
+        public RelayCommandAsync EditCourseCommand { get; set; }
+        public RelayCommandAsync AddCourseCommand { get; set; }
         #region"Properties"
         private Course _selectedCourse;
         public Course SelectedCourse
@@ -45,17 +34,6 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
             set
             {
                 _selectedCourse = value;
-                OnPropertyChanged();
-            }
-        }
-
-        private Group _selectedGroup;
-        public Group SelectedGroup
-        {
-            get { return _selectedGroup; }
-            set
-            {
-                _selectedGroup = value;
                 OnPropertyChanged();
             }
         }
@@ -81,9 +59,11 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
                 OnPropertyChanged();
             }
         }
+
+        public Course CreatedCourse { get; set; }
         #endregion
 
-        public bool Edit()
+        public async Task<bool> Edit()
         {
             if (string.IsNullOrEmpty(Name) || string.IsNullOrEmpty(Description))
             {
@@ -94,16 +74,14 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
             var course = SelectedCourse;
             course.Name = Name;
             course.Description = Description;
-            var isSuccess = _courseRepository.Edit(course);
-            Name = string.Empty;
-            Description = string.Empty;
+            var isSuccess =  await _courseRepository.EditAsync(course);
             _dialogueService.EditMessageSuccess();
             return isSuccess;
         }
 
-        public bool Delete()
+        public async Task<bool> Delete(Course course)
         {
-            var groups = _groupRepository.GetListById(SelectedCourse.CourseId);
+            var groups = await _groupRepository.GetListByIdAsync(course.CourseId);
 
             if (groups.Count > 0)
             {
@@ -111,17 +89,17 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
                 return false;
             }
 
-            var result = _dialogueService.DeleteMessage(SelectedCourse.Name);
+            var result = _dialogueService.DeleteMessage(course.Name);
 
             if (result == MessageBoxResult.Yes)
             {
-                var course = SelectedCourse;
-                return _courseRepository.Delete(course);
+                var deletionResult = await _courseRepository.DeleteAsync(course);
+                return deletionResult;
             }
             return false;
         }
 
-        public bool AddNewCourse()
+        public async Task<bool> Add()
         {
             if (string.IsNullOrEmpty(Name) || string.IsNullOrEmpty(Description))
             {
@@ -135,32 +113,11 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
                 Description = Description,
             };
 
-            var isSuccess = _courseRepository.Create(course);
+            CreatedCourse = course;
+            var isSuccess = await _courseRepository.CreateAsync(course);
             _dialogueService.AddMessageSuccess();
             return isSuccess;
         }
-
-        public void CreateDock(Course course)
-        {
-            SaveFileDialog saveFileDialog = new SaveFileDialog();
-            saveFileDialog.Filter = "Pdf files (*.pdf)|*.pdf | Csv files (*.csv)|*.csv";
-            saveFileDialog.FileName = string.Format("{0}", course.Name);
-            StringBuilder stringBuilder = new StringBuilder();
-            if (saveFileDialog.ShowDialog() == true)
-            {
-                var students = _studentRepository.GetStudentsBuCourseId(course.CourseId);
-                foreach (var item in students)
-                {
-                    string line = string.Format("{0} {1}", item.FirstName, item.LastName);
-                    stringBuilder.AppendLine(line);
-                }
-                File.WriteAllText(saveFileDialog.FileName, stringBuilder.ToString());
-                _dialogueService.SuccessMessage();
-            }
-            else
-            {
-                return;
-            }
-        }
+       
     }
 }

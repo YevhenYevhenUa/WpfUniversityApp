@@ -1,17 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
-using System.Windows.Input;
 using Task10.UniversityWPF.Domain.Core.Models;
-using Task10.UniversityWPF.Domain.Interfaces;
-using Task10.UniversityWPF.Infrastructure.Data;
-using Task10.UniversityWPF.MVVM.Views.Course;
-using Task10.UniversityWPF.MVVM.Views.Groups;
 using Task10.UniversityWPF.MVVMCore;
+using Task10.UniversityWPF.Services;
 
 namespace Task10.UniversityWPF.MVVM.ViewModels
 {
@@ -21,36 +14,32 @@ namespace Task10.UniversityWPF.MVVM.ViewModels
         private readonly GroupViewModel _groupVM;
         private readonly TeacherViewModel _teacherVM;
         private readonly StudentViewModel _studentVM;
-        private readonly ICourseRepository _courseRepository;
-        private readonly IGroupRepository _groupRepository;
-        private readonly IStudentRepository _studentRepository;
-        private readonly ITeacherRepository _teacherRepository;
+        private readonly IFileIOService _fileIOService;
+        private readonly IDialogueService _dialogueService;
 
         public MainWindowViewModel(
             CourseViewModel courseVM,
             GroupViewModel groupVM,
             TeacherViewModel teacherVM,
-            ICourseRepository courseRepository,
-            IGroupRepository groupRepository,
-            IStudentRepository studentRepository,
-            ITeacherRepository teacherRepository,
-            StudentViewModel studentVM)
+            StudentViewModel studentVM,
+            IFileIOService fileIOService,
+            IDialogueService dialogueService)
         {
             _courseVM = courseVM;
             _groupVM = groupVM;
             _teacherVM = teacherVM;
             _studentVM = studentVM;
-            _courseRepository = courseRepository;
-            _groupRepository = groupRepository;
-            _studentRepository = studentRepository;
-            _teacherRepository = teacherRepository;
-            SetCollections();
-            EditButtonCommand = new RelayCommand(o => EditCommand(), o => true);
-            AddButtonCommand = new RelayCommand(o => AddCommand(), o => true);
-            ImportCommand = new RelayCommand(o => Import(), o => true);
-            ExportCommand = new RelayCommand(o => Export(), o => true);
-            CreateDockCommand = new RelayCommand(o => CreateDockWithStudents(), o => true);
+            _fileIOService = fileIOService;
+            _dialogueService = dialogueService;
+            Init();
+            AddButtonCommand = new RelayCommandAsync(AddCommand);
+            EditButtonCommand = new RelayCommandAsync(EditCommand);
+            ImportCommand = new RelayCommandAsync(Import);
+            ExportCommand = new RelayCommandAsync(Export);
+            CreateDockCommand = new RelayCommandAsync(GenerateFileWithStudents);
+            RemoveButtonCommand = new RelayCommandAsync(RemoveCommand);
         }
+
         #region"properties"
         private ObservableCollection<Course> _courses;
         public ObservableCollection<Course> Courses
@@ -96,137 +85,198 @@ namespace Task10.UniversityWPF.MVVM.ViewModels
             }
         }
         #endregion
-        public RelayCommand EditButtonCommand { get; set; }
-        public RelayCommand AddButtonCommand { get; set; }
-        public RelayCommand CreateDockCommand { get; set; }
-        public RelayCommand ImportCommand { get; set; }
-        public RelayCommand ExportCommand { get; set; }
+        public RelayCommandAsync EditButtonCommand { get; set; }
+        public RelayCommandAsync AddButtonCommand { get; set; }
+        public RelayCommandAsync RemoveButtonCommand { get; set; }
+        public RelayCommandAsync CreateDockCommand { get; set; }
+        public RelayCommandAsync ImportCommand { get; set; }
+        public RelayCommandAsync ExportCommand { get; set; }
 
-        public void EditCommand()
+
+        private async Task Init()
+        {
+            Courses = await _courseVM.GetCourseCollection();
+            Teachers = await _teacherVM.GetTeachersCollection();
+            Groups = await _groupVM.GetGroupsCollection();
+            Students = await _studentVM.GetStudentCollection();
+        }
+
+        public async Task EditCommand()
         {
             var @object = SelectedItem;
-
             switch (@object)
             {
                 case Course course:
+                    var oldCourses = Courses.FirstOrDefault(c => c.CourseId == course.CourseId);
                     _courseVM.EditCourse(course);
-                    SetCollections();
                     break;
                 case Group group:
-                    _groupVM.EditGroup(group);
-                    SetCollections();
+                    var oldGroup = Groups.FirstOrDefault(g => g.GroupId == group.GroupId);
+                    await _groupVM.EditGroup(group);
                     break;
                 case Student student:
+                    var oldStudent = Students.FirstOrDefault(s => s.StudentId == student.StudentId);
                     _studentVM.EditStudent(student);
-                    SetCollections();
                     break;
                 case Teacher teacher:
+                    var oldTeacher = Teachers.FirstOrDefault(t => t.TeacherId == teacher.TeacherId);
                     _teacherVM.EditTeacher(teacher);
-                    SetCollections();
                     break;
 
                 default:
+                    _dialogueService.NotSelectedEditWarning();
                     break;
             }
         }
 
-        public void AddCommand()
+        public async Task AddCommand()
         {
             var tab = SelectedTab;
-
             switch (tab.Header)
             {
+                case "Tree view struct":
                 case "Courses":
-                    _courseVM.AddCourse();
-                    SetCollections();
+                    var newCourse = _courseVM.AddCourse();
+                    if (newCourse is not null)
+                    {
+                        Courses.Add(newCourse);
+                    }
+
                     break;
                 case "Groups":
-                    _groupVM.AddGroup();
-                    SetCollections();
+                    var newGroup = await _groupVM.AddGroup();
+                    if (newGroup is not null)
+                    {
+                        Groups.Add(newGroup);
+                    }
+
                     break;
                 case "Students":
-                    _studentVM.AddStudent();
-                    SetCollections();
+                    var newStudent = await _studentVM.AddStudent();
+                    if (newStudent is not null)
+                    {
+                        Students.Add(newStudent);
+                    }
+
                     break;
                 case "Teachers":
-                    _teacherVM.AddTeacher();
-                    SetCollections();
+                    var newTeacher = _teacherVM.AddTeacher();
+                    if (newTeacher is not null)
+                    {
+                        Teachers.Add(newTeacher);
+                    }
+
                     break;
                 default:
                     break;
             }
         }
 
-        public void CreateDockWithStudents()
+        public async Task RemoveCommand()
         {
-            if (SelectedItem is Course course)
+            var @object = SelectedItem;
+            switch (@object)
             {
-                _courseVM.CreateDockWithStudents(course);
-            }
-            else if (SelectedItem is Group group)
-            {
-                _groupVM.CreateDock(group);
+                case Course course:
+                    var courseResult = await _courseVM.CourseCRUDViewModel.Delete(course);
+                    if (courseResult)
+                    {
+                        Courses.Remove(course);
+                    }
+
+                    break;
+                case Group group:
+                    var groupResult = await _groupVM.GroupCRUDVIewModel.Delete(group);
+                    if (groupResult)
+                    {
+                        Groups.Remove(group);
+                    }
+
+                    break;
+                case Student student:
+                    var studentResult = await _studentVM.StudentCRUDViewModel.Delete(student);
+                    if (studentResult)
+                    {
+                        Students.Remove(student);
+                    }
+
+                    break;
+                case Teacher teacher:
+                    var teacherResult = await _teacherVM.TeacherCRUDViewModel.Delete(teacher);
+                    if (teacherResult)
+                    {
+                        Teachers.Remove(teacher);
+                    }
+
+                    break;
+
+                default:
+                    _dialogueService.NotSelectedDeleteWarning();
+                    break;
             }
         }
 
-        public void Export()
+        public async Task GenerateFileWithStudents()
         {
+            bool result = false;
+            switch (SelectedItem)
+            {
+                case Course course:
+                    result = await _fileIOService.GetAllStudentsFromCourseToFile(course);
+                    break;
+                case Group group:
+                    result = await _fileIOService.GetAllStudentsFromGroupToFile(group);
+                    break;
+                default:
+                    _dialogueService.NotSelectedForFileGenerationWarning();
+                    break;
+            }
+
+            if (result)
+            {
+                _dialogueService.SuccessMessage();
+            }
+
+        }
+
+        public async Task Export()
+        {
+            bool result = false;
             if (SelectedItem is Group group)
             {
-                _groupVM.ExportStudents(group);
+                result = await _fileIOService.ExportStudentsFromGroupToCsv(group);
             }
+            else
+            {
+                _dialogueService.NotSelectedForExportImportWarning();
+            }
+
+            if (result)
+            {
+                _dialogueService.SuccessMessage();
+            }
+
         }
 
-        public void Import()
+        public async Task Import()
         {
+            bool result = false;
             if (SelectedItem is Group group)
             {
-                _groupVM.ImportStudents(group);
-                SetCollections();
+                result = await _fileIOService.ImportStudentsToGroup(group);
+                Students = await _studentVM.GetStudentCollection();
+            }
+            else
+            {
+                _dialogueService.NotSelectedForExportImportWarning();
+            }
+
+            if (result)
+            {
+                _dialogueService.SuccessMessage();
             }
         }
 
-        public void SetCollections()
-        {
-            var courses = _courseRepository.GetCourseList();
-            Courses = new ObservableCollection<Course>();
-            foreach (var item in courses)
-            {
-                item.Groups = _groupRepository.GetListById(item.CourseId);
-            }
-
-            foreach (var item in courses)
-            {
-                for (int i = 0; i < item.Groups.Count; i++)
-                {
-                    int groupId = item.Groups.ToList()[i].GroupId;
-                    item.Groups.ToList()[i].Students = _studentRepository.GetListById(groupId);
-                }
-
-                Courses.Add(item);
-            }
-
-            Teachers = new ObservableCollection<Teacher>();
-            var teacher = _teacherRepository.GetAllTeachers();
-            foreach (var item in teacher)
-            {
-                Teachers.Add(item);
-            }
-
-            Groups = new ObservableCollection<Group>();
-            var groups = _groupRepository.GetAllGroups();
-            foreach (var item in groups)
-            {
-                Groups.Add(item);
-            }
-
-            Students = new ObservableCollection<Student>();
-            var student = _studentRepository.GetAllStudent();
-            foreach (var item in student)
-            {
-                Students.Add(item);
-            }
-        }
 
         private object _selectedItem;
         public object SelectedItem
@@ -247,6 +297,68 @@ namespace Task10.UniversityWPF.MVVM.ViewModels
             {
                 _selectedTab = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(IsVisibleGeneratePdf));
+                OnPropertyChanged(nameof(IsVisibleImportExport));
+                OnPropertyChanged(nameof(IsVisibleControlButtons));
+            }
+        }
+
+        public bool IsVisibleGeneratePdf
+        {
+            get
+            {
+                if (SelectedTab is null)
+                {
+                    return false;
+                }
+
+                switch (SelectedTab.Header)
+                {
+                    case "Courses":
+                        return true;
+                    case "Groups":
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+        }
+
+        public bool IsVisibleImportExport
+        {
+            get
+            {
+                if (SelectedTab is null)
+                {
+                    return false;
+                }
+
+                switch (SelectedTab.Header)
+                {
+                    case "Groups":
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+        }
+
+        public bool IsVisibleControlButtons
+        {
+            get
+            {
+                if (SelectedTab is null)
+                {
+                    return false;
+                }
+
+                switch (SelectedTab.Header)
+                {
+                    case "Tree view struct":
+                        return false;
+                    default:
+                        return true;
+                }
             }
         }
     }

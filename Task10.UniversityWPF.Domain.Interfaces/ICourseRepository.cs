@@ -3,11 +3,10 @@
 namespace Task10.UniversityWPF.Domain.Interfaces;
 public interface ICourseRepository
 {
-    ICollection<Course> GetCourseList();
-    Course GetCourseById(int id);
-    bool Create(Course course);
-    bool Edit(Course course);
-    bool Delete(Course course);
-    bool Save();
-
+    Task<ICollection<Course>> GetCourseListAsync();
+    Task<Course> GetCourseByIdAsync(int id);
+    Task<bool> CreateAsync(Course course);
+    Task<bool> EditAsync(Course course);
+    Task<bool> DeleteAsync(Course course);
+    Task<bool> SaveAsync();
 }

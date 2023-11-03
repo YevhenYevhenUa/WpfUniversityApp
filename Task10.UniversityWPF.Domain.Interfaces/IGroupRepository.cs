@@ -3,11 +3,11 @@
 namespace Task10.UniversityWPF.Domain.Interfaces;
 public interface IGroupRepository
 {
-    ICollection<Group> GetAllGroups();
-    ICollection<Group> GetListById(int id);
-    Group GetGroupById(int id);
-    bool Create(Group group);
-    bool Edit(Group group);
-    bool Delete(Group group);
-    bool Save();
+    Task<ICollection<Group>> GetAllGroupsAsync();
+    Task<ICollection<Group>> GetListByIdAsync(int id);
+    Task<Group> GetGroupByIdAsync(int id);
+    Task<bool> CreateAsync(Group group);
+    Task<bool> EditAsync(Group group);
+    Task<bool> DeleteAsync(Group group);
+    Task<bool> SaveAsync();
 }

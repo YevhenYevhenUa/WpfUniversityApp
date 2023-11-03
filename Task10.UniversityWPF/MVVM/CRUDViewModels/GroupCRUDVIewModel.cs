@@ -1,8 +1,6 @@
-﻿using Microsoft.Win32;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using Task10.UniversityWPF.Domain.Core.Models;
 using Task10.UniversityWPF.Domain.Interfaces;
@@ -20,8 +18,8 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
         private readonly IDialogueService _dialogueService;
 
         public GroupCRUDVIewModel(ITeacherRepository teacherRepository,
-            IGroupRepository groupRepository, 
-            ICourseRepository courseRepository, 
+            IGroupRepository groupRepository,
+            ICourseRepository courseRepository,
             IStudentRepository studentRepository,
             IDialogueService dialogueService)
         {
@@ -30,14 +28,12 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
             _courseRepository = courseRepository;
             _studentRepository = studentRepository;
             _dialogueService = dialogueService;
-            EditCommand = new RelayCommand(o => Edit(), o => true);
-            DeleteCommand = new RelayCommand(o => Delete(), o => true);
-            CreateNewCommand = new RelayCommand(o => Add(), o => true);
+            EditCommand = new RelayCommandAsync(Edit);
+            CreateNewCommand = new RelayCommandAsync(Add);
         }
 
-        public RelayCommand EditCommand { get; set; }
-        public RelayCommand DeleteCommand { get; set; }
-        public RelayCommand CreateNewCommand { get; set; }
+        public RelayCommandAsync EditCommand { get; set; }
+        public RelayCommandAsync CreateNewCommand { get; set; }
         #region"Properties"
         private string _name;
         public string Name
@@ -104,8 +100,10 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
                 OnPropertyChanged();
             }
         }
+
+        public Group CreatedGroup { get; set; }
         #endregion
-        public bool Add()
+        public async Task<bool> Add()
         {
             if (string.IsNullOrEmpty(Name) || SelectedTeacher is null || SelectedCourse is null)
             {
@@ -122,13 +120,14 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
                 TeacherId = _selectedTeacher.TeacherId,
             };
 
-            var isSuccess = _groupRepository.Create(group);
+            CreatedGroup = group;
+            var isSuccess = await _groupRepository.CreateAsync(group);
             _dialogueService.AddMessageSuccess();
             Name = string.Empty;
             return isSuccess;
         }
 
-        public bool Edit()
+        public async Task<bool> Edit()
         {
             if (string.IsNullOrEmpty(Name) || SelectedTeacher is null)
             {
@@ -140,15 +139,14 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
             group.Name = Name;
             group.Teacher = SelectedTeacher;
             group.TeacherId = SelectedTeacher.TeacherId;
-
-            var isSuccess = _groupRepository.Edit(group);
+            var isSuccess = await _groupRepository.EditAsync(group);
             _dialogueService.EditMessageSuccess();
             return isSuccess;
         }
 
-        public bool Delete()
+        public async Task<bool> Delete(Group group)
         {
-            var students = _studentRepository.GetListById(SelectedGroup.GroupId);
+            var students = await _studentRepository.GetListByIdAsync(group.GroupId);
 
             if (students.Count > 0)
             {
@@ -156,93 +154,24 @@ namespace Task10.UniversityWPF.MVVM.CRUDViewModels
                 return false;
             }
 
-            var result = _dialogueService.DeleteMessage(SelectedGroup.Name);
+            var result = _dialogueService.DeleteMessage(group.Name);
             if (result == MessageBoxResult.Yes)
             {
-                var group = SelectedGroup;
-                return _groupRepository.Delete(group);
+                return await _groupRepository.DeleteAsync(group);
             }
             return false;
         }
 
-        public void ExportOpen(Group group)
+        public async Task SetTeachersCollection()
         {
-            SaveFileDialog saveFileDialog = new SaveFileDialog();
-            saveFileDialog.Filter = "Csv files (*.csv)|*.csv";
-            if (saveFileDialog.ShowDialog() == true)
-            {
-                var students = _studentRepository.GetListById(group.GroupId);
-                StringBuilder stringBuilder = new StringBuilder();
-                foreach (var student in students)
-                {
-                    var line = string.Format("{0},{1},", student.FirstName, student.LastName);
-                    stringBuilder.AppendLine(line);
-                }
-
-                File.WriteAllText(saveFileDialog.FileName, stringBuilder.ToString());
-                _dialogueService.SuccessMessage();
-            }
+            var result = await _teacherRepository.GetAllTeachersAsync();
+            Teachers = result.ToList();
         }
 
-        public void ImortOpen(Group group)
+        public async Task SetCourseCollection()
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Csv files (*.csv)|*.csv";
-            string[] lines = null;
-            if (openFileDialog.ShowDialog() == true)
-            {
-                lines = File.ReadAllLines(openFileDialog.FileName);
-            }
-            else
-            {
-                return;
-            }
-
-            List<Student> students = new List<Student>(lines.Length);
-            foreach (var item in lines)
-            {
-                string[] data = item.Split(',');
-                int count = data.Length - 1;
-                students.Add(new Student { FirstName = data[0], LastName = data[1], GroupId = group.GroupId, Group = group });
-            }
-
-            var testList = group.Students.ToList();
-            _studentRepository.RemoveListOfStudents(testList);
-            _studentRepository.AddListOfStudent(students);
-            _dialogueService.SuccessMessage();
-        }
-
-        public void CreateDock(Group group)
-        {
-            SaveFileDialog saveFileDialog = new SaveFileDialog();
-            saveFileDialog.Filter = "Pdf files (*.pdf)|*.pdf | Csv files (*.csv)|*.csv";
-            saveFileDialog.FileName = string.Format("{0}", group.Name);
-            StringBuilder stringBuilder = new StringBuilder();
-            if (saveFileDialog.ShowDialog() == true)
-            {
-                var students = group.Students.ToList();
-                foreach (var item in students)
-                {
-                    string line = string.Format("{0} {1}", item.FirstName, item.LastName);
-                    stringBuilder.AppendLine(line);
-                }
-                File.WriteAllText(saveFileDialog.FileName, stringBuilder.ToString());
-                _dialogueService.SuccessMessage();
-            }
-            else
-            {
-                return;
-            }
-        }
-
-        public void SetTeachersCollection()
-        {
-            Teachers = _teacherRepository.GetAllTeachers().ToList();
-        }
-
-        public void SetCourseCollection()
-        {
-            Courses = _courseRepository.GetCourseList().ToList();
+            var taskResult = await _courseRepository.GetCourseListAsync();
+            Courses = taskResult.ToList();
         }
     }
 }

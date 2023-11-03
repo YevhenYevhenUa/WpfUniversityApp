@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:Task10.UniversityWPF.MVVM.Views.Teachers"
         mc:Ignorable="d"
         Title="Edit teacher" Height="300" Width="250"
-        WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         SizeToContent="WidthAndHeight" Background="#252525">
     <Grid>
@@ -50,14 +50,9 @@
                     Width="100" 
                     Padding="5" Content="Save changes" 
                     Command="{Binding EditTeacherCommand}"
-                    Margin="20 0 10 0"
+                    Margin="75 0 75 0"
                     Click="Button_Click"/>
-                <Button
-                    Height="30" 
-                    Width="100" 
-                    Padding="5" Content="Delete" 
-                    Command="{Binding DeleteTeacherCommand}" 
-                    Click="Button_Click"/>
+                
             </StackPanel>
         </StackPanel>
        
